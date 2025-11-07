@@ -261,15 +261,15 @@ export default function Conversas() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-hidden flex pt-16 lg:pt-0">
+      <main className="flex-1 flex pt-16 lg:pt-0 overflow-hidden">
         {/* Lista de Conversas - Sidebar Esquerdo */}
         <div className={cn(
-          "w-full lg:w-80 border-r flex flex-col bg-muted/20",
+          "w-full lg:w-80 border-r flex flex-col bg-muted/20 h-full",
           selectedSession && "hidden lg:flex"
         )}>
-          <div className="p-4 sm:p-6 border-b">
+          <div className="p-4 sm:p-6 border-b flex-shrink-0">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -451,13 +451,13 @@ export default function Conversas() {
 
         {/* Área de Mensagens - Direita */}
         <div className={cn(
-          "flex-1 flex flex-col",
+          "flex-1 flex flex-col h-full",
           !selectedSession && "hidden lg:flex"
         )}>
           {selectedConversation ? (
             <>
               {/* Header da Conversa */}
-              <div className="p-4 sm:p-6 border-b bg-muted/20">
+              <div className="p-4 sm:p-6 border-b bg-muted/20 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
