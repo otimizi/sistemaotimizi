@@ -38,7 +38,7 @@ export default function FormularioPublico() {
 
   async function loadLandingPage() {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("landing_pages")
         .select("*")
         .eq("slug", slug)
@@ -65,14 +65,14 @@ export default function FormularioPublico() {
   async function incrementarAcesso() {
     try {
       // Incrementar contador de acessos
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("landing_pages")
         .select("total_acessos")
         .eq("slug", slug)
         .single()
 
       if (data) {
-        await supabase
+        await (supabase as any)
           .from("landing_pages")
           .update({ total_acessos: data.total_acessos + 1 })
           .eq("slug", slug)
@@ -94,7 +94,7 @@ export default function FormularioPublico() {
 
       if (formData.telefone) {
         // Verificar se cliente já existe pelo telefone
-        const { data: clienteExistente } = await supabase
+        const { data: clienteExistente } = await (supabase as any)
           .from("clientes")
           .select("id")
           .eq("telefone", formData.telefone)
@@ -102,7 +102,7 @@ export default function FormularioPublico() {
 
         if (clienteExistente) {
           // Atualizar cliente existente
-          const { error: updateError } = await supabase
+          const { error: updateError } = await (supabase as any)
             .from("clientes")
             .update({
               nome: formData.nome || null,
@@ -120,7 +120,7 @@ export default function FormularioPublico() {
           clienteId = clienteExistente.id
         } else {
           // Criar novo cliente
-          const { data: novoCliente, error: insertError } = await supabase
+          const { data: novoCliente, error: insertError } = await (supabase as any)
             .from("clientes")
             .insert([{
               nome: formData.nome || null,
@@ -142,7 +142,7 @@ export default function FormularioPublico() {
       }
 
       // 2. Registrar conversão
-      const { error: conversaoError } = await supabase
+      const { error: conversaoError } = await (supabase as any)
         .from("landing_page_conversoes")
         .insert([{
           landing_page_id: landingPage.id,
@@ -153,14 +153,14 @@ export default function FormularioPublico() {
       if (conversaoError) throw conversaoError
 
       // 3. Incrementar contador de conversões
-      const { data: currentPage } = await supabase
+      const { data: currentPage } = await (supabase as any)
         .from("landing_pages")
         .select("total_conversoes")
         .eq("id", landingPage.id)
         .single()
 
       if (currentPage) {
-        await supabase
+        await (supabase as any)
           .from("landing_pages")
           .update({ total_conversoes: currentPage.total_conversoes + 1 })
           .eq("id", landingPage.id)
@@ -208,7 +208,7 @@ export default function FormularioPublico() {
     try {
       const numeroFormatado = formatarTelefoneBrasileiro(telefone)
       
-      await supabase
+      await (supabase as any)
         .from("n8n_chat_histories")
         .insert([{
           session_id: numeroFormatado,
@@ -261,7 +261,7 @@ export default function FormularioPublico() {
       await salvarNoHistoricoChat(telefone, mensagem)
 
       // Registrar sucesso do envio
-      await supabase
+      await (supabase as any)
         .from("landing_page_conversoes")
         .update({ whatsapp_enviado: true })
         .eq("landing_page_id", landingPage?.id)
@@ -272,7 +272,7 @@ export default function FormularioPublico() {
       console.error("Erro ao enviar WhatsApp:", error)
       
       // Registrar erro
-      await supabase
+      await (supabase as any)
         .from("landing_page_conversoes")
         .update({ 
           whatsapp_enviado: false,

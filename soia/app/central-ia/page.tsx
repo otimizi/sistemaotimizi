@@ -12,7 +12,6 @@ import { supabase } from "@/lib/supabase"
 import { formatDate } from "@/lib/utils"
 import { Bot, Save, RotateCcw, Activity, Zap, Trash2, Plus } from "lucide-react"
 import { motion } from "framer-motion"
-import type { Database } from "@/lib/database.types"
 
 interface AIAgent {
   id: number
@@ -83,12 +82,11 @@ export default function CentralIA() {
         prompt_backup: selectedAgent.prompt_atual, // Salva o prompt atual como backup
         fluxo_agente: formData.fluxo_agente,
         data_atualizacao: new Date().toISOString(),
-      } as Database['public']['Tables']['gerenciamento_ai']['Update']
+      }
 
-      // @ts-ignore - Supabase types issue
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("gerenciamento_ai")
-        .update(updateData as any)
+        .update(updateData)
         .eq("id", selectedAgent.id)
 
       if (error) throw error
@@ -112,12 +110,11 @@ export default function CentralIA() {
         prompt_backup: null,
         fluxo_agente: "",
         data_atualizacao: new Date().toISOString(),
-      } as Database['public']['Tables']['gerenciamento_ai']['Insert']
+      }
 
-      // @ts-ignore - Supabase types issue
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("gerenciamento_ai")
-        .insert([insertData as any])
+        .insert([insertData])
 
       if (error) throw error
 

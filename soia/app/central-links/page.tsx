@@ -151,14 +151,14 @@ export default function CentralLinks() {
       }
 
       if (editingPage) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("landing_pages")
           .update(dataToSave)
           .eq("id", editingPage.id)
 
         if (error) throw error
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("landing_pages")
           .insert([dataToSave])
 
@@ -176,7 +176,7 @@ export default function CentralLinks() {
 
   async function handleToggleStatus(page: LandingPage) {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("landing_pages")
         .update({ ativo: !page.ativo })
         .eq("id", page.id)

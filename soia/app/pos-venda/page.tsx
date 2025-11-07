@@ -33,7 +33,7 @@ export default function PosVenda() {
 
   async function loadMensagens() {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("mercadolivre_registro_msgposvenda")
         .select("*")
         .order("created_at", { ascending: false })
@@ -44,8 +44,8 @@ export default function PosVenda() {
       setMensagens(mensagensData)
 
       // Calcular estatísticas
-      const enviados = mensagensData.filter(m => m.status_envio === true).length
-      const pendentes = mensagensData.filter(m => m.status_envio === false || m.status_envio === null).length
+      const enviados = mensagensData.filter((m: any) => m.status_envio === true).length
+      const pendentes = mensagensData.filter((m: any) => m.status_envio === false || m.status_envio === null).length
       
       setStats({ enviados, pendentes })
     } catch (error) {
