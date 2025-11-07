@@ -131,7 +131,7 @@ export default function Diagnostico() {
           </CardHeader>
           <CardContent>
             {status.length === 0 && !loading ? (
-              <p className="text-muted-foreground">Clique em "Testar Novamente" para verificar</p>
+              <p className="text-muted-foreground">Clique em &quot;Testar Novamente&quot; para verificar</p>
             ) : (
               <div className="space-y-3">
                 {status.map((tabela) => (
