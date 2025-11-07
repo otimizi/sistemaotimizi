@@ -154,18 +154,21 @@ export interface Database {
       n8n_chat_histories: {
         Row: {
           id: number
-          session_id: string | null
-          message: Json | null
+          session_id: string
+          message: Json
+          data_registro: string
         }
         Insert: {
           id?: number
-          session_id?: string | null
-          message?: Json | null
+          session_id: string
+          message: Json
+          data_registro?: string
         }
         Update: {
           id?: number
-          session_id?: string | null
-          message?: Json | null
+          session_id?: string
+          message?: Json
+          data_registro?: string
         }
       }
       registro_notificacao_mercadolivre: {

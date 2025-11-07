@@ -5,10 +5,13 @@ import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
-import { MessageSquare, Search, Bot, User, Calendar, Mail } from "lucide-react"
+import { MessageSquare, Search, Bot, User, Calendar, Mail, X, Filter } from "lucide-react"
 import { motion } from "framer-motion"
 import { formatDate } from "@/lib/utils"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 interface Message {
   type: string
@@ -23,6 +26,7 @@ interface ChatHistory {
   id: number
   session_id: string | null
   message: Message | null
+  data_registro: string
 }
 
 interface Cliente {
@@ -59,6 +63,8 @@ export default function Conversas() {
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
   const [clienteStats, setClienteStats] = useState<ClienteStats | null>(null)
   const [showClienteCard, setShowClienteCard] = useState(false)
+  const [dateFilter, setDateFilter] = useState<Date | null>(null)
+  const [showDateFilter, setShowDateFilter] = useState(false)
 
   useEffect(() => {
     loadConversations()
@@ -83,7 +89,7 @@ export default function Conversas() {
 
       // Criar mapa de telefone -> cliente
       const clientesMap = new Map<string, Cliente>()
-      clientesData?.forEach(cliente => {
+      clientesData?.forEach((cliente: any) => {
         if (cliente.telefone) {
           // Normalizar telefone removendo caracteres especiais
           const telefoneNormalizado = cliente.telefone.replace(/\D/g, '')
@@ -92,7 +98,7 @@ export default function Conversas() {
       })
 
       // Agrupar mensagens por session_id e associar cliente
-      const grouped = (chatData || []).reduce((acc, item) => {
+      const grouped = (chatData || []).reduce((acc, item: any) => {
         const sessionId = item.session_id || "sem-sessao"
         
         if (!acc[sessionId]) {
@@ -171,14 +177,29 @@ export default function Conversas() {
   }
 
   const filteredConversations = conversations.filter(conv => {
-    if (!search) return true
+    // Filtro de busca por texto
+    if (search) {
+      const searchLower = search.toLowerCase()
+      const matchesSearch = conv.session_id.toLowerCase().includes(searchLower) ||
+        conv.cliente?.nome?.toLowerCase().includes(searchLower) ||
+        conv.messages.some(msg => 
+          msg.message?.content?.toLowerCase().includes(searchLower)
+        )
+      if (!matchesSearch) return false
+    }
     
-    const searchLower = search.toLowerCase()
-    return conv.session_id.toLowerCase().includes(searchLower) ||
-      conv.cliente?.nome?.toLowerCase().includes(searchLower) ||
-      conv.messages.some(msg => 
-        msg.message?.content?.toLowerCase().includes(searchLower)
-      )
+    // Filtro por data
+    if (dateFilter) {
+      const filterDate = format(dateFilter, 'yyyy-MM-dd')
+      const hasMessageOnDate = conv.messages.some(msg => {
+        if (!msg.data_registro) return false
+        const msgDate = format(new Date(msg.data_registro), 'yyyy-MM-dd')
+        return msgDate === filterDate
+      })
+      if (!hasMessageOnDate) return false
+    }
+    
+    return true
   })
 
   const selectedConversation = conversations.find(c => c.session_id === selectedSession)
@@ -228,14 +249,80 @@ export default function Conversas() {
                 </div>
               </div>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar conversas..."
-                  className="pl-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar conversas..."
+                    className="pl-9"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                
+                {/* Filtro de Data */}
+                <div className="flex gap-2">
+                  <Button
+                    variant={showDateFilter ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setShowDateFilter(!showDateFilter)}
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    {dateFilter ? format(dateFilter, "dd/MM/yyyy", { locale: ptBR }) : "Filtrar por data"}
+                  </Button>
+                  {dateFilter && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDateFilter(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Seletor de Data */}
+                {showDateFilter && (
+                  <Card className="p-3">
+                    <div className="space-y-2">
+                      <Input
+                        type="date"
+                        value={dateFilter ? format(dateFilter, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setDateFilter(new Date(e.target.value))
+                          } else {
+                            setDateFilter(null)
+                          }
+                        }}
+                        className="w-full"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setDateFilter(new Date())}
+                        >
+                          Hoje
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            const yesterday = new Date()
+                            yesterday.setDate(yesterday.getDate() - 1)
+                            setDateFilter(yesterday)
+                          }}
+                        >
+                          Ontem
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
               </div>
             </motion.div>
           </div>
@@ -393,6 +480,14 @@ export default function Conversas() {
                         <Card className={isHuman ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
                           <CardContent className="p-4">
                             <p className="text-sm whitespace-pre-wrap">{content}</p>
+                            {msg.data_registro && (
+                              <p className={`text-xs mt-2 flex items-center gap-1 ${
+                                isHuman ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              }`}>
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(msg.data_registro), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              </p>
+                            )}
                           </CardContent>
                         </Card>
                       </div>

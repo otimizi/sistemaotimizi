@@ -3,6 +3,9 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   LayoutDashboard,
   MessageSquare,
@@ -14,6 +17,7 @@ import {
   ShoppingCart,
   MessagesSquare,
   Link2,
+  LogOut,
 } from "lucide-react"
 
 const navigation = [
@@ -31,6 +35,12 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { user, signOut } = useAuth()
+
+  const getUserInitials = () => {
+    if (!user?.email) return "U"
+    return user.email.charAt(0).toUpperCase()
+  }
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-card">
@@ -59,10 +69,31 @@ export function Sidebar() {
           )
         })}
       </nav>
-      <div className="border-t p-4">
-        <p className="text-xs text-muted-foreground text-center">
-          Sistema Otimizi IA v1.0
-        </p>
+      <div className="border-t p-4 space-y-3">
+        <div className="flex items-center gap-3 px-2">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {getUserInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {user?.user_metadata?.full_name || "Usuário"}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user?.email}
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={signOut}
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
+        >
+          <LogOut className="h-4 w-4" />
+          Sair
+        </Button>
       </div>
     </div>
   )

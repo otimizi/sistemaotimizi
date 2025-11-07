@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
 import { formatDate } from "@/lib/utils"
+import { AuthGuard } from "@/components/auth-guard"
 import {
   MessageSquare,
   ShoppingCart,
@@ -65,10 +66,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-8">
+    <AuthGuard>
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-8">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -227,6 +229,7 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </AuthGuard>
   )
 }
