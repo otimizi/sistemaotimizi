@@ -69,14 +69,17 @@ export default function Produtos() {
 
     setSaving(true)
     try {
-      const { error } = await supabase
+      // Normalizar valores null para evitar erro de tipo
+      const updateData = {
+        item_titulo: editingProduct.item_titulo ?? '',
+        descricao_produto: editingProduct.descricao_produto ?? '',
+        informacoes_adicionais: editingProduct.informacoes_adicionais ?? '',
+        link_produto: editingProduct.link_produto ?? '',
+      }
+
+      const { error } = await (supabase as any)
         .from("mercadolivre_produtos")
-        .update({
-          item_titulo: editingProduct.item_titulo,
-          descricao_produto: editingProduct.descricao_produto,
-          informacoes_adicionais: editingProduct.informacoes_adicionais,
-          link_produto: editingProduct.link_produto,
-        })
+        .update(updateData)
         .eq("id", editingProduct.id)
 
       if (error) throw error
