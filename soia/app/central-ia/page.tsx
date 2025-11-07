@@ -166,20 +166,20 @@ export default function CentralIA() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-8">
+      <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
+        <div className="p-4 sm:p-6 lg:p-8">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
             <div className="flex items-center gap-3 mb-2">
-              <Bot className="h-8 w-8 text-primary" />
-              <h2 className="text-3xl font-bold tracking-tight">Central da IA</h2>
+              <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Central da IA</h2>
             </div>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">
               Gerencie e configure o agente de inteligência artificial
             </p>
           </motion.div>

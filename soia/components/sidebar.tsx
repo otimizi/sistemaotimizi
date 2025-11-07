@@ -1,11 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
   LayoutDashboard,
   MessageSquare,
@@ -18,6 +20,7 @@ import {
   MessagesSquare,
   Link2,
   LogOut,
+  Menu,
 } from "lucide-react"
 
 const navigation = [
@@ -36,26 +39,28 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
+  const [open, setOpen] = useState(false)
 
   const getUserInitials = () => {
     if (!user?.email) return "U"
     return user.email.charAt(0).toUpperCase()
   }
 
-  return (
-    <div className="flex h-screen w-64 flex-col border-r bg-card">
+  const SidebarContent = () => (
+    <>
       <div className="flex h-16 items-center border-b px-6">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           SOIA
         </h1>
       </div>
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = pathname === item.href
           return (
             <Link
               key={item.name}
               href={item.href}
+              onClick={() => setOpen(false)}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                 isActive
@@ -95,6 +100,42 @@ export function Sidebar() {
           Sair
         </Button>
       </div>
+    </>
+  )
+
+  return (
+    <>
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-b bg-card px-4">
+        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          SOIA
+        </h1>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="lg:hidden">
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64">
+            <div className="flex h-full flex-col">
+              <SidebarContent />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex h-screen w-64 flex-col border-r bg-card">
+        <SidebarContent />
+      </div>
+    </>
+  )
+}
+
+function SidebarContentOld() {
+  return (
+    <div className="flex h-screen w-64 flex-col border-r bg-card hidden">
     </div>
   )
 }

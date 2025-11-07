@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
-import { MessageSquare, Search, Bot, User, Calendar, Mail, X, Filter } from "lucide-react"
+import { MessageSquare, Search, Bot, User, Calendar, Mail, X, Filter, ArrowLeft } from "lucide-react"
 import { motion } from "framer-motion"
-import { formatDate } from "@/lib/utils"
+import { formatDate, cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -217,12 +217,15 @@ export default function Conversas() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-hidden flex">
+      <main className="flex-1 overflow-hidden flex pt-16 lg:pt-0">
         {/* Lista de Conversas - Sidebar Esquerdo */}
-        <div className="w-80 border-r flex flex-col bg-muted/20">
-          <div className="p-6 border-b">
+        <div className={cn(
+          "w-full lg:w-80 border-r flex flex-col bg-muted/20",
+          selectedSession && "hidden lg:flex"
+        )}>
+          <div className="p-4 sm:p-6 border-b">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -391,12 +394,24 @@ export default function Conversas() {
         </div>
 
         {/* Área de Mensagens - Direita */}
-        <div className="flex-1 flex flex-col">
+        <div className={cn(
+          "flex-1 flex flex-col",
+          !selectedSession && "hidden lg:flex"
+        )}>
           {selectedConversation ? (
             <>
               {/* Header da Conversa */}
-              <div className="p-6 border-b bg-muted/20">
-                <div className="flex items-center justify-between">
+              <div className="p-4 sm:p-6 border-b bg-muted/20">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden"
+                    onClick={() => setSelectedSession(null)}
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="flex-1 flex items-center justify-between">
                   <div>
                     {selectedConversation.cliente ? (
                       <div>
@@ -439,6 +454,7 @@ export default function Conversas() {
                       <Bot className="h-3 w-3 mr-1" />
                       {selectedConversation.messages.filter(m => m.message?.type === "ai").length}
                     </Badge>
+                  </div>
                   </div>
                 </div>
               </div>

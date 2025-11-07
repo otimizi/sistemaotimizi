@@ -57,3 +57,60 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile and PWA optimizations */
+@layer utilities {
+  /* Prevent horizontal scroll on mobile */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* Smooth scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Better tap highlighting on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent text size adjustment on mobile */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Safe area for notch devices */
+  @supports (padding: max(0px)) {
+    .safe-top {
+      padding-top: max(env(safe-area-inset-top), 0px);
+    }
+    .safe-bottom {
+      padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    }
+    .safe-left {
+      padding-left: max(env(safe-area-inset-left), 0px);
+    }
+    .safe-right {
+      padding-right: max(env(safe-area-inset-right), 0px);
+    }
+  }
+
+  /* Improve touch interactions */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Prevent pull-to-refresh on mobile PWA */
+  body {
+    overscroll-behavior-y: contain;
+  }
+
+  /* Better focus states for accessibility */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
