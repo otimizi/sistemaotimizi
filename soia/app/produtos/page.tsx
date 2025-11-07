@@ -5,10 +5,15 @@ import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase"
 import { formatDateShort } from "@/lib/utils"
-import { Package, Search } from "lucide-react"
+import { Package, Search, Pencil, ExternalLink, Save } from "lucide-react"
 import { motion } from "framer-motion"
+import { useToast } from "@/hooks/use-toast"
 
 interface Product {
   id: number
@@ -17,12 +22,17 @@ interface Product {
   item_titulo: string | null
   descricao_produto: string | null
   informacoes_adicionais: string | null
+  link_produto: string | null
 }
 
 export default function Produtos() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     loadProducts()
@@ -42,6 +52,59 @@ export default function Produtos() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleEditProduct(product: Product) {
+    setEditingProduct(product)
+    setIsDialogOpen(true)
+  }
+
+  function handleCloseDialog() {
+    setIsDialogOpen(false)
+    setEditingProduct(null)
+  }
+
+  async function handleSaveProduct() {
+    if (!editingProduct) return
+
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from("mercadolivre_produtos")
+        .update({
+          item_titulo: editingProduct.item_titulo,
+          descricao_produto: editingProduct.descricao_produto,
+          informacoes_adicionais: editingProduct.informacoes_adicionais,
+          link_produto: editingProduct.link_produto,
+        })
+        .eq("id", editingProduct.id)
+
+      if (error) throw error
+
+      // Atualizar lista local
+      setProducts(products.map(p => p.id === editingProduct.id ? editingProduct : p))
+
+      toast({
+        title: "Sucesso!",
+        description: "Produto atualizado com sucesso.",
+      })
+
+      handleCloseDialog()
+    } catch (error) {
+      console.error("Erro ao salvar produto:", error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o produto. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function updateEditingProduct(field: keyof Product, value: string) {
+    if (!editingProduct) return
+    setEditingProduct({ ...editingProduct, [field]: value })
   }
 
   const filteredProducts = products.filter(product =>
@@ -113,7 +176,17 @@ export default function Produtos() {
                             ID: {product.item_id || "N/A"}
                           </CardDescription>
                         </div>
-                        <Badge variant="outline">ML</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">ML</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditProduct(product)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -137,6 +210,22 @@ export default function Produtos() {
                           </p>
                         </div>
                       )}
+                      {product.link_produto && (
+                        <div>
+                          <p className="text-sm font-medium mb-1 text-muted-foreground">
+                            Link do Produto
+                          </p>
+                          <a
+                            href={product.link_produto}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline flex items-center gap-1"
+                          >
+                            Ver no Mercado Livre
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      )}
                       <div className="pt-2 border-t">
                         <p className="text-xs text-muted-foreground">
                           Cadastrado em {formatDateShort(product.created_at)}
@@ -150,6 +239,100 @@ export default function Produtos() {
           )}
         </div>
       </main>
+
+      {/* Dialog de Edição */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Produto</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do produto do Mercado Livre
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingProduct && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="item_id">ID do Item</Label>
+                <Input
+                  id="item_id"
+                  value={editingProduct.item_id || ""}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="item_titulo">Título do Produto</Label>
+                <Input
+                  id="item_titulo"
+                  value={editingProduct.item_titulo || ""}
+                  onChange={(e) => updateEditingProduct("item_titulo", e.target.value)}
+                  placeholder="Digite o título do produto"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="descricao_produto">Descrição</Label>
+                <Textarea
+                  id="descricao_produto"
+                  value={editingProduct.descricao_produto || ""}
+                  onChange={(e) => updateEditingProduct("descricao_produto", e.target.value)}
+                  placeholder="Digite a descrição do produto"
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="informacoes_adicionais">Informações Adicionais</Label>
+                <Textarea
+                  id="informacoes_adicionais"
+                  value={editingProduct.informacoes_adicionais || ""}
+                  onChange={(e) => updateEditingProduct("informacoes_adicionais", e.target.value)}
+                  placeholder="Digite informações adicionais sobre o produto"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="link_produto">Link do Produto</Label>
+                <Input
+                  id="link_produto"
+                  type="url"
+                  value={editingProduct.link_produto || ""}
+                  onChange={(e) => updateEditingProduct("link_produto", e.target.value)}
+                  placeholder="https://produto.mercadolivre.com.br/..."
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseDialog}
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveProduct}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <span className="mr-2">Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

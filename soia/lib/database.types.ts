@@ -81,6 +81,7 @@ export interface Database {
           item_titulo: string | null
           descricao_produto: string | null
           informacoes_adicionais: string | null
+          link_produto: string | null
         }
         Insert: {
           id?: number
@@ -89,6 +90,7 @@ export interface Database {
           item_titulo?: string | null
           descricao_produto?: string | null
           informacoes_adicionais?: string | null
+          link_produto?: string | null
         }
         Update: {
           id?: number
@@ -97,6 +99,7 @@ export interface Database {
           item_titulo?: string | null
           descricao_produto?: string | null
           informacoes_adicionais?: string | null
+          link_produto?: string | null
         }
       }
       mercadolivre_registro_comentarios: {
