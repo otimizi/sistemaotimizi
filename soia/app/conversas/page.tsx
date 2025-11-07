@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -55,9 +55,15 @@ interface GroupedConversation {
   agente: string
 }
 
+const CONVERSATIONS_PER_PAGE = 15
+
 export default function Conversas() {
   const [conversations, setConversations] = useState<GroupedConversation[]>([])
+  const [allConversations, setAllConversations] = useState<GroupedConversation[]>([])
+  const [displayedCount, setDisplayedCount] = useState(CONVERSATIONS_PER_PAGE)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [search, setSearch] = useState("")
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
@@ -65,6 +71,7 @@ export default function Conversas() {
   const [showClienteCard, setShowClienteCard] = useState(false)
   const [dateFilter, setDateFilter] = useState<Date | null>(null)
   const [showDateFilter, setShowDateFilter] = useState(false)
+  const observerTarget = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadConversations()
@@ -129,7 +136,9 @@ export default function Conversas() {
         b.messages[b.messages.length - 1]?.id - a.messages[a.messages.length - 1]?.id
       )
 
-      setConversations(conversationsArray)
+      setAllConversations(conversationsArray)
+      setConversations(conversationsArray.slice(0, CONVERSATIONS_PER_PAGE))
+      setHasMore(conversationsArray.length > CONVERSATIONS_PER_PAGE)
       
       // Selecionar primeira conversa automaticamente
       if (conversationsArray.length > 0 && !selectedSession) {
@@ -141,6 +150,41 @@ export default function Conversas() {
       setLoading(false)
     }
   }
+
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore && !search && !dateFilter) {
+      setLoadingMore(true)
+      setTimeout(() => {
+        const nextCount = displayedCount + CONVERSATIONS_PER_PAGE
+        setConversations(allConversations.slice(0, nextCount))
+        setDisplayedCount(nextCount)
+        setHasMore(nextCount < allConversations.length)
+        setLoadingMore(false)
+      }, 300)
+    }
+  }, [loadingMore, hasMore, search, dateFilter, displayedCount, allConversations])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentTarget = observerTarget.current
+    if (currentTarget) {
+      observer.observe(currentTarget)
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget)
+      }
+    }
+  }, [loadMore])
 
   async function loadClienteStats(clienteId: number) {
     try {
@@ -176,7 +220,7 @@ export default function Conversas() {
     loadClienteStats(cliente.id)
   }
 
-  const filteredConversations = conversations.filter(conv => {
+  const filteredConversations = (search || dateFilter ? allConversations : conversations).filter(conv => {
     // Filtro de busca por texto
     if (search) {
       const searchLower = search.toLowerCase()
@@ -389,6 +433,18 @@ export default function Conversas() {
                   </Card>
                 </motion.div>
               ))
+            )}
+            
+            {/* Infinite scroll trigger */}
+            {!loading && !search && !dateFilter && hasMore && (
+              <div ref={observerTarget} className="flex items-center justify-center py-4">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <span>Carregando mais conversas...</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

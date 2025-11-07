@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,18 +27,33 @@ interface Notificacao {
   } | null
 }
 
+const ITEMS_PER_PAGE = 20
+
 export default function Notificacoes() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(0)
   const [search, setSearch] = useState("")
+  const observerTarget = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadNotificacoes()
   }, [])
 
-  async function loadNotificacoes() {
+  async function loadNotificacoes(pageNum: number = 0, append: boolean = false) {
     try {
-      const { data, error } = await supabase
+      if (append) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
+
+      const from = pageNum * ITEMS_PER_PAGE
+      const to = from + ITEMS_PER_PAGE - 1
+
+      const { data, error, count } = await supabase
         .from("registros_notificacao")
         .select(`
           *,
@@ -48,17 +63,58 @@ export default function Notificacoes() {
             email,
             telefone
           )
-        `)
+        `, { count: 'exact' })
         .order("created_at", { ascending: false })
+        .range(from, to)
 
       if (error) throw error
-      setNotificacoes(data || [])
+
+      if (append) {
+        setNotificacoes(prev => [...prev, ...(data || [])])
+      } else {
+        setNotificacoes(data || [])
+      }
+
+      // Verificar se há mais itens
+      const totalLoaded = (pageNum + 1) * ITEMS_PER_PAGE
+      setHasMore((count || 0) > totalLoaded)
     } catch (error) {
       console.error("Erro ao carregar notificações:", error)
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
+
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore && !search) {
+      const nextPage = page + 1
+      setPage(nextPage)
+      loadNotificacoes(nextPage, true)
+    }
+  }, [page, loadingMore, hasMore, search])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentTarget = observerTarget.current
+    if (currentTarget) {
+      observer.observe(currentTarget)
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget)
+      }
+    }
+  }, [loadMore])
 
   const filteredNotificacoes = notificacoes.filter(notif =>
     notif.assunto?.toLowerCase().includes(search.toLowerCase()) ||
@@ -204,12 +260,12 @@ export default function Notificacoes() {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {filteredNotificacoes.map((notif, index) => (
+              {filteredNotificacoes.map((notif) => (
                 <motion.div
                   key={notif.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  transition={{ duration: 0.3 }}
                 >
                   <Card className="hover:shadow-md transition-shadow">
                     <CardHeader>
@@ -268,6 +324,18 @@ export default function Notificacoes() {
                   </Card>
                 </motion.div>
               ))}
+              
+              {/* Infinite scroll trigger */}
+              {!search && hasMore && (
+                <div ref={observerTarget} className="flex items-center justify-center py-8">
+                  {loadingMore && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <span>Carregando mais...</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
