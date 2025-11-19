@@ -127,23 +127,22 @@ export default function CentralLinks() {
 
   async function handleSave() {
     try {
-      // Gerar slug se não foi fornecido
+      // Gerar/validar slug apenas quando criando um novo registro
       let slug = formData.slug
-      
-      if (!slug) {
-        slug = gerarSlugLimpo(formData.titulo)
-      } else {
-        // Se o usuário definiu um slug customizado, verificar se é único
-        const isUnico = await verificarSlugUnico(slug)
-        if (!isUnico) {
-          alert("❌ Esta URL já está em uso. Escolha outra ou deixe em branco para gerar automaticamente.")
-          return
-        }
-      }
-      
-      // Se estiver editando, manter o slug original
+
       if (editingPage) {
         slug = editingPage.slug
+      } else {
+        if (!slug) {
+          slug = gerarSlugLimpo(formData.titulo)
+        } else {
+          // Se o usuário definiu um slug customizado, verificar se é único
+          const isUnico = await verificarSlugUnico(slug)
+          if (!isUnico) {
+            alert("❌ Esta URL já está em uso. Escolha outra ou deixe em branco para gerar automaticamente.")
+            return
+          }
+        }
       }
 
       const dataToSave = {
