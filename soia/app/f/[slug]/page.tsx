@@ -67,6 +67,24 @@ export default function FormularioPublico() {
     if (!landingPage?.webhook_url) return
 
     try {
+      const dadosParaWebhook = { ...dados }
+
+      if (dadosParaWebhook.cep) {
+        const apenasNumeros = dadosParaWebhook.cep.replace(/\D/g, '')
+        if (apenasNumeros.length === 8) {
+          dadosParaWebhook.cep = `${apenasNumeros.slice(0, 5)}-${apenasNumeros.slice(5)}`
+        }
+      }
+
+      if (dadosParaWebhook.cpf_cnpj) {
+        const apenasNumeros = dadosParaWebhook.cpf_cnpj.replace(/\D/g, '')
+        if (apenasNumeros.length === 11) {
+          dadosParaWebhook.cpf_cnpj = `${apenasNumeros.slice(0, 3)}.${apenasNumeros.slice(3, 6)}.${apenasNumeros.slice(6, 9)}-${apenasNumeros.slice(9)}`
+        } else if (apenasNumeros.length === 14) {
+          dadosParaWebhook.cpf_cnpj = `${apenasNumeros.slice(0, 2)}.${apenasNumeros.slice(2, 5)}.${apenasNumeros.slice(5, 8)}/${apenasNumeros.slice(8, 12)}-${apenasNumeros.slice(12)}`
+        }
+      }
+
       await fetch('/api/central-links/dispatch-webhook', {
         method: 'POST',
         headers: {
@@ -84,7 +102,7 @@ export default function FormularioPublico() {
               titulo: landingPage.titulo,
             },
             cliente_id: clienteId,
-            dados,
+            dados: dadosParaWebhook,
           }
         }),
       })
