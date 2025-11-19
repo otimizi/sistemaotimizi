@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
-import { MessageSquare, Search, Bot, User, Calendar, Mail, X, Filter, ArrowLeft } from "lucide-react"
+import { MessageSquare, Search, Bot, User, Calendar, Mail, X, ArrowLeft, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
-import { formatDate, cn } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -71,13 +71,11 @@ export default function Conversas() {
   const [showClienteCard, setShowClienteCard] = useState(false)
   const [dateFilter, setDateFilter] = useState<Date | null>(null)
   const [showDateFilter, setShowDateFilter] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const observerTarget = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    loadConversations()
-  }, [])
-
-  async function loadConversations() {
+  const loadConversations = useCallback(async () => {
+    setLoading(true)
     try {
       // Buscar todas as mensagens
       const { data: chatData, error: chatError } = await supabase
@@ -107,13 +105,13 @@ export default function Conversas() {
       // Agrupar mensagens por session_id e associar cliente
       const grouped = (chatData || []).reduce((acc, item: any) => {
         const sessionId = item.session_id || "sem-sessao"
-        
+
         if (!acc[sessionId]) {
           // Tentar encontrar cliente pelo telefone (session_id)
           const telefoneNormalizado = sessionId.replace(/\D/g, '')
           const cliente = clientesMap.get(telefoneNormalizado) || null
           const agente = cliente?.setor_atual || "Geral"
-          
+
           acc[sessionId] = {
             session_id: sessionId,
             messages: [],
@@ -123,33 +121,71 @@ export default function Conversas() {
             agente
           }
         }
-        
+
         acc[sessionId].messages.push(item)
         acc[sessionId].messageCount++
-        
+
         return acc
       }, {} as Record<string, GroupedConversation>)
 
-      // Converter para array e ordenar por mais recente
-      const conversationsArray = Object.values(grouped) as GroupedConversation[]
-      conversationsArray.sort((a, b) => 
-        b.messages[b.messages.length - 1]?.id - a.messages[a.messages.length - 1]?.id
-      )
+      // Converter para array e ordenar por mensagem mais recente
+      const conversationsArray = Object.values(grouped).map((conversation) => {
+        const sortedMessages = [...conversation.messages].sort((a, b) => {
+          const dateA = a.data_registro ? new Date(a.data_registro).getTime() : 0
+          const dateB = b.data_registro ? new Date(b.data_registro).getTime() : 0
+          return dateA - dateB
+        })
+
+        const firstMessageDate = sortedMessages[0]?.data_registro
+
+        return {
+          ...conversation,
+          messages: sortedMessages,
+          firstMessage: firstMessageDate ? new Date(firstMessageDate) : new Date(0)
+        }
+      }) as GroupedConversation[]
+
+      const getLastMessageTimestamp = (conv: GroupedConversation) => {
+        const lastMessage = conv.messages[conv.messages.length - 1]
+        if (!lastMessage?.data_registro) return 0
+        return new Date(lastMessage.data_registro).getTime()
+      }
+
+      conversationsArray.sort((a, b) => getLastMessageTimestamp(b) - getLastMessageTimestamp(a))
 
       setAllConversations(conversationsArray)
       setConversations(conversationsArray.slice(0, CONVERSATIONS_PER_PAGE))
+      setDisplayedCount(CONVERSATIONS_PER_PAGE)
       setHasMore(conversationsArray.length > CONVERSATIONS_PER_PAGE)
-      
-      // Selecionar primeira conversa automaticamente
-      if (conversationsArray.length > 0 && !selectedSession) {
-        setSelectedSession(conversationsArray[0].session_id)
-      }
+
+      // Selecionar primeira conversa automaticamente ou manter seleção atual
+      setSelectedSession((prevSelected) => {
+        if (prevSelected && conversationsArray.some(conv => conv.session_id === prevSelected)) {
+          return prevSelected
+        }
+
+        return conversationsArray.length > 0 ? conversationsArray[0].session_id : null
+      })
     } catch (error) {
       console.error("Erro ao carregar conversas:", error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadConversations()
+  }, [loadConversations])
+
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await loadConversations()
+    } finally {
+      setRefreshing(false)
+    }
+  }, [loadConversations, refreshing])
 
   const loadMore = useCallback(() => {
     if (!loadingMore && hasMore && !search && !dateFilter) {
@@ -220,7 +256,9 @@ export default function Conversas() {
     loadClienteStats(cliente.id)
   }
 
-  const filteredConversations = (search || dateFilter ? allConversations : conversations).filter(conv => {
+  const baseConversations = search || dateFilter ? allConversations : conversations
+
+  const filteredConversations = baseConversations.filter(conv => {
     // Filtro de busca por texto
     if (search) {
       const searchLower = search.toLowerCase()
@@ -246,7 +284,7 @@ export default function Conversas() {
     return true
   })
 
-  const selectedConversation = conversations.find(c => c.session_id === selectedSession)
+  const selectedConversation = allConversations.find(c => c.session_id === selectedSession)
 
   const getMessageIcon = (type: string) => {
     return type === "human" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />
@@ -297,14 +335,25 @@ export default function Conversas() {
               </div>
 
               <div className="space-y-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar conversas..."
-                    className="pl-9"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar conversas..."
+                      className="pl-9"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleRefresh}
+                    disabled={loading || refreshing}
+                    aria-label="Atualizar conversas"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                  </Button>
                 </div>
                 
                 {/* Filtro de Data */}

@@ -26,6 +26,7 @@ interface LandingPage {
   total_acessos: number
   total_conversoes: number
   created_at: string
+  webhook_url: string | null
 }
 
 const CAMPOS_DISPONIVEIS = [
@@ -54,6 +55,7 @@ export default function CentralLinks() {
     campos_habilitados: ["nome", "telefone", "email"],
     mensagem_whatsapp: "Olá {nome}! Recebemos seu cadastro e entraremos em contato em breve. 🚀",
     cor_primaria: "#3B82F6",
+    webhook_url: "",
   })
 
   useEffect(() => {
@@ -148,6 +150,7 @@ export default function CentralLinks() {
         ...formData,
         slug: editingPage ? editingPage.slug : slug,
         campos_habilitados: formData.campos_habilitados,
+        webhook_url: formData.webhook_url.trim() ? formData.webhook_url.trim() : null,
       }
 
       if (editingPage) {
@@ -216,6 +219,7 @@ export default function CentralLinks() {
         campos_habilitados: page.campos_habilitados,
         mensagem_whatsapp: page.mensagem_whatsapp,
         cor_primaria: page.cor_primaria || "#3B82F6",
+        webhook_url: page.webhook_url || "",
       })
     } else {
       setEditingPage(null)
@@ -226,6 +230,7 @@ export default function CentralLinks() {
         campos_habilitados: ["nome", "telefone", "email"],
         mensagem_whatsapp: "Olá {nome}! Recebemos seu cadastro e entraremos em contato em breve. 🚀",
         cor_primaria: "#3B82F6",
+        webhook_url: "",
       })
     }
     setShowModal(true)
@@ -551,6 +556,20 @@ export default function CentralLinks() {
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     💡 Use variáveis como {"{nome}"}, {"{email}"}, {"{telefone}"} para personalizar a mensagem
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="webhook">Webhook (opcional)</Label>
+                  <Input
+                    id="webhook"
+                    type="url"
+                    value={formData.webhook_url}
+                    onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
+                    placeholder="https://exemplo.com/webhook"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enviaremos um POST com os dados do cadastro após cada conversão.
                   </p>
                 </div>
 

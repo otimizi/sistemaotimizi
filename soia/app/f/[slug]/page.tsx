@@ -18,6 +18,7 @@ interface LandingPage {
   mensagem_whatsapp: string
   cor_primaria: string | null
   imagem_url: string | null
+  webhook_url: string | null
 }
 
 export default function FormularioPublico() {
@@ -59,6 +60,33 @@ export default function FormularioPublico() {
       console.error("Erro ao carregar landing page:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function enviarWebhook(dados: Record<string, string>, clienteId: number | null) {
+    if (!landingPage?.webhook_url) return
+
+    try {
+      await fetch(landingPage.webhook_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tipo: 'landing_page_conversao',
+          enviado_em: new Date().toISOString(),
+          origem: window.location.origin,
+          landing_page: {
+            id: landingPage.id,
+            slug,
+            titulo: landingPage.titulo,
+          },
+          cliente_id: clienteId,
+          dados,
+        }),
+      })
+    } catch (error) {
+      console.error('Erro ao disparar webhook:', error)
     }
   }
 
@@ -169,6 +197,11 @@ export default function FormularioPublico() {
       // 4. Enviar WhatsApp via API
       if (formData.telefone) {
         await enviarWhatsApp(formData.telefone, formData)
+      }
+
+      // 5. Disparar webhook em segundo plano
+      if (landingPage.webhook_url) {
+        enviarWebhook(formData, clienteId)
       }
 
       setSuccess(true)
