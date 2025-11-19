@@ -30,6 +30,7 @@ export default function FormularioPublico() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -135,6 +136,17 @@ export default function FormularioPublico() {
     e.preventDefault()
     if (!landingPage) return
 
+    setErrorMessage(null)
+
+    const telefoneObrigatorio = landingPage.campos_habilitados.includes("telefone")
+    if (telefoneObrigatorio) {
+      const telefoneLimpo = (formData.telefone || "").replace(/\D/g, "")
+      if (telefoneLimpo.length < 10) {
+        setErrorMessage("Ops... telefone inválido, tente mais uma vez.")
+        return
+      }
+    }
+
     setSubmitting(true)
 
     try {
@@ -228,7 +240,12 @@ export default function FormularioPublico() {
       setSuccess(true)
     } catch (error) {
       console.error("Erro ao enviar formulário:", error)
-      alert("Erro ao enviar formulário. Tente novamente.")
+
+      if (error instanceof Error && error.message === "telefone_invalido") {
+        setErrorMessage("Ops... telefone inválido, tente mais uma vez.")
+      } else {
+        setErrorMessage("Não conseguimos enviar seu cadastro agora. Tente novamente em instantes.")
+      }
     } finally {
       setSubmitting(false)
     }
@@ -308,7 +325,10 @@ export default function FormularioPublico() {
       })
 
       if (!response.ok) {
-        throw new Error('Erro ao enviar WhatsApp')
+        const textoErro = await response.text().catch(() => "")
+        const descricao = textoErro.toLowerCase()
+        const telefoneInvalido = response.status === 400 || descricao.includes("number") || descricao.includes("telefone")
+        throw new Error(telefoneInvalido ? 'telefone_invalido' : 'whatsapp_indisponivel')
       }
 
       // Salvar mensagem no histórico de chat
@@ -335,6 +355,8 @@ export default function FormularioPublico() {
         .eq("landing_page_id", landingPage?.id)
         .order("created_at", { ascending: false })
         .limit(1)
+
+      throw error
     }
   }
 
@@ -442,6 +464,11 @@ export default function FormularioPublico() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errorMessage && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {errorMessage}
+                </div>
+              )}
               {landingPage.campos_habilitados.map((campo) => (
                 <div key={campo}>
                   <Label htmlFor={campo}>
