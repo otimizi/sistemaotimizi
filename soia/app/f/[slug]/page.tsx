@@ -67,22 +67,25 @@ export default function FormularioPublico() {
     if (!landingPage?.webhook_url) return
 
     try {
-      await fetch(landingPage.webhook_url, {
+      await fetch('/api/central-links/dispatch-webhook', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          tipo: 'landing_page_conversao',
-          enviado_em: new Date().toISOString(),
-          origem: window.location.origin,
-          landing_page: {
-            id: landingPage.id,
-            slug,
-            titulo: landingPage.titulo,
-          },
-          cliente_id: clienteId,
-          dados,
+          webhookUrl: landingPage.webhook_url,
+          payload: {
+            tipo: 'landing_page_conversao',
+            enviado_em: new Date().toISOString(),
+            origem: window.location.origin,
+            landing_page: {
+              id: landingPage.id,
+              slug,
+              titulo: landingPage.titulo,
+            },
+            cliente_id: clienteId,
+            dados,
+          }
         }),
       })
     } catch (error) {
